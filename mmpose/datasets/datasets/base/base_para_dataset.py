@@ -444,7 +444,7 @@ class BaseParaDataset(BaseDataset):
         id_ = 0
         for det in det_results:
             # remove non-human instances
-            if det['category_id'] != 19:
+            if det['category_id'] != 1:
                 continue
 
             img = self.coco.loadImgs(det['image_id'])[0]
