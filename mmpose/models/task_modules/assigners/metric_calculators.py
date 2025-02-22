@@ -76,7 +76,8 @@ class PoseOKS:
     """OKS score Calculator."""
 
     def __init__(self,
-                 metainfo: Optional[str] = 'configs/_base_/datasets/coco.py'):
+                 # metainfo: Optional[str] = 'configs/_base_/datasets/coco.py'):
+                 metainfo: Optional[str] = 'configs/_base_/datasets/ParaAthelet.py'):
 
         if metainfo is not None:
             metainfo = parse_pose_metainfo(dict(from_file=metainfo))
