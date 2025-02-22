@@ -1,8 +1,8 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 from mmpose.registry import DATASETS
 from ..base import BaseCocoStyleDataset
-from ... import BaseParaDataset
-
+# from ... import BaseParaDataset
+from ..base import BaseParaDataset
 
 @DATASETS.register_module()
 class ParaDataset(BaseParaDataset):
@@ -70,4 +70,4 @@ class ParaDataset(BaseParaDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/coco.py')
+    METAINFO: dict = dict(from_file='configs/_base_/datasets/ParaAthelet.py')
