@@ -199,8 +199,8 @@ dataset_coco = dict(
     data_root=data_root,
     data_mode=data_mode,
     filter_cfg=dict(filter_empty_gt=False, min_size=32),
-    ann_file='coco/annotations/person_keypoints_train2017.json',
-    data_prefix=dict(img='coco/train2017/'),
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/annotations/person_keypoints_train2017.json',
+    data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/train2017/'),
     pipeline=train_pipeline_stage1,
 )
 
@@ -233,8 +233,8 @@ val_dataloader = dict(
         type='CocoDataset',
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='coco/annotations/person_keypoints_val2017.json',
-        data_prefix=dict(img='coco/val2017/'),
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/annotations/person_keypoints_val2017.json',
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/val2017/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -243,7 +243,7 @@ test_dataloader = val_dataloader
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'coco/annotations/person_keypoints_val2017.json',
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/annotations/person_keypoints_val2017.json',
     score_mode='bbox',
     nms_mode='none',
 )
