@@ -203,8 +203,8 @@ dataset_coco = dict(
     data_root=data_root,
     data_mode=data_mode,
     filter_cfg=dict(filter_empty_gt=False, min_size=8),
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_train.json',
-    data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/ParaAthelet-train/'),
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_train.json',
+    data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-train/'),
     pipeline=train_pipeline_stage1,
 )
 
@@ -237,8 +237,8 @@ val_dataloader = dict(
         type='ParaDataset',
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_val.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/ParaAthelet-val/'),
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json',
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -247,7 +247,7 @@ test_dataloader = val_dataloader
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_val.json',
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json',
     score_mode='bbox',
     nms_mode='none',
 )
