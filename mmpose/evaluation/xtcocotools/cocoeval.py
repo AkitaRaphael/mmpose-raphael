@@ -373,7 +373,10 @@ class COCOeval:
 
                 xd = d[0::3]; yd = d[1::3]
 
-                dismatched_limbclass_id = [i for i in range(len(limbclass_g)) if limbclass_g[i] != limbclass_d[i]]
+                limbclass_g = np.array(limbclass_g)
+                limbclass_d = np.array(limbclass_d)
+                dismatched_limbclass_id = [i for i in range(len(limbclass_g))
+                                           if not np.array_equal(limbclass_g[i], limbclass_d[i])]
                 focus_keypoints = self.focus_keypoints(dismatched_limbclass_id, limbclass_g)
 
                 if k1>0:
@@ -741,45 +744,26 @@ class COCOeval:
         return easy, mid, hard
 
     def limbdecision(self, pre_key_score):
-        limbtype = []
         limb_scores = []
+        pre_key_score[pre_key_score > 0] = 1
 
         limb_scores.append(pre_key_score[[7, 9, 17, 19]])
         limb_scores.append(pre_key_score[[8, 10, 18, 20]])
         limb_scores.append(pre_key_score[[13, 15, 21, 23]])
         limb_scores.append(pre_key_score[[14, 16, 22, 24]])
 
-        for i in limb_scores:
 
-            limb_scores_max_id = np.argmax(i)
-            if limb_scores_max_id == 2:
-                limbtype.append(1)
-            elif limb_scores_max_id == 3:
-                limbtype.append(2)
-            elif limb_scores_max_id == 0:
-                limb_scores_2 = pre_key_score[[9, 19]]
-                limb_scores_2_id = np.argmax(limb_scores_2)
-                if limb_scores_2_id == 1:
-                    limbtype.append(2)
-                else:
-                    limbtype.append(3)
-            else:
-                limbtype.append(3)
-        return limbtype
+        return limb_scores
 
     def focus_keypoints(self, indices, limbclass_g):
         # Mapping for keypoints based on idx and limbclass_g[idx]
-        keypoint_map = {
-            0: {1: [17], 2: [19], 3: [7, 9]},
-            1: {1: [18], 2: [20], 3: [8, 10]},
-            2: {1: [21], 2: [23], 3: [13, 15]},
-            3: {1: [22], 2: [24], 3: [14, 16]}
-        }
+        map = np.array([[7, 9, 17, 19], [8, 10, 18, 20], [13, 15, 21, 23], [14, 16, 22, 24]])
 
-        # Collect keypoints for all indices
         result = []
         for idx in indices:
-            keypoints = keypoint_map.get(idx, {}).get(limbclass_g[idx], [])
+            limb_class = limbclass_g[idx]  # Calculate the class as the sum of limbclass_g[idx]
+            match = map[idx]
+            keypoints = match[limb_class == 1]
             result.extend(keypoints)  # Append the keypoints to the result
 
         return result

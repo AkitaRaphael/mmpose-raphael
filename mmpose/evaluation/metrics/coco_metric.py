@@ -9,14 +9,17 @@ import numpy as np
 from mmengine.evaluator import BaseMetric
 from mmengine.fileio import dump, get_local_path, load
 from mmengine.logging import MessageHub, MMLogger, print_log
-from xtcocotools.coco import COCO
-from xtcocotools.cocoeval import COCOeval
+# from xtcocotools.coco import COCO
+# from xtcocotools.cocoeval import COCOeval
+from mmpose.evaluation.xtcocotools.coco import COCO
+from mmpose.evaluation.xtcocotools.cocoeval import COCOeval
 
 from mmpose.registry import METRICS
 from mmpose.structures.bbox import bbox_xyxy2xywh
 from ..functional import (oks_nms, soft_oks_nms, transform_ann, transform_pred,
                           transform_sigmas)
 
+import json
 
 @METRICS.register_module()
 class CocoMetric(BaseMetric):
@@ -404,12 +407,15 @@ class CocoMetric(BaseMetric):
         for pred in preds:
             img_id = pred['img_id']
 
+
             if self.pred_converter is not None:
                 pred = transform_pred(pred,
                                       self.pred_converter['num_keypoints'],
                                       self.pred_converter['mapping'])
 
             for idx, keypoints in enumerate(pred['keypoints']):
+
+                limbtype = self.limbdecision(pred['keypoint_scores'][idx])
 
                 instance = {
                     'id': pred['id'],
@@ -418,6 +424,7 @@ class CocoMetric(BaseMetric):
                     'keypoints': keypoints,
                     'keypoint_scores': pred['keypoint_scores'][idx],
                     'bbox_score': pred['bbox_scores'][idx],
+                    'limb_class': limbtype,
                 }
                 if 'bbox' in pred:
                     instance['bbox'] = pred['bbox'][idx]
@@ -450,6 +457,7 @@ class CocoMetric(BaseMetric):
                     instance['keypoints'], instance['keypoint_scores'][:, None]
                 ],
                                                        axis=-1)
+
                 if self.score_mode == 'bbox':
                     instance['score'] = instance['bbox_score']
                 elif self.score_mode == 'keypoint':
@@ -535,6 +543,7 @@ class CocoMetric(BaseMetric):
                     'category_id': img_kpt['category_id'],
                     'keypoints': keypoint.tolist(),
                     'score': float(img_kpt['score']),
+                    'limb_class': img_kpt['limb_class'],
                 }
                 if 'bbox' in img_kpt:
                     res['bbox'] = img_kpt['bbox'].tolist()
@@ -544,6 +553,15 @@ class CocoMetric(BaseMetric):
 
         res_file = f'{outfile_prefix}.keypoints.json'
         dump(cat_results, res_file, sort_keys=True, indent=4)
+        # print(cat_results)
+
+        save_pred_file = '/home/rapheal/mmpose/vis_results/predtemp/coco_format_predictions.json'
+        # with open(save_pred_file, 'w') as f:
+        #     dump(cat_results, f, sort_keys=True, indent=4)
+        with open(save_pred_file, 'w') as f:
+            f.truncate(0)  # 清空文件内容
+        dump(cat_results, save_pred_file, sort_keys=True, indent=4)
+
 
     def _do_python_keypoint_eval(self, outfile_prefix: str) -> list:
         """Do keypoint evaluation using COCOAPI.
@@ -612,3 +630,45 @@ class CocoMetric(BaseMetric):
                     del kpts[img_id][i]
 
         return kpts
+
+    def limbdecision(self, pre_key_score):
+
+        limbtype = []
+        limb_scores = []
+        # pre_key_score[pre_key_score > 0.3] = 1
+        # pre_key_score[pre_key_score <= 0.3] = 0
+
+        limb_scores.append(pre_key_score[[7, 9, 17, 19]])
+        limb_scores.append(pre_key_score[[8, 10, 18, 20]])
+        limb_scores.append(pre_key_score[[13, 15, 21, 23]])
+        limb_scores.append(pre_key_score[[14, 16, 22, 24]])
+
+        for i in limb_scores:
+
+            limb_scores_max_id = np.argmax(i)
+            if i[limb_scores_max_id] > 0.3:
+                if limb_scores_max_id == 2:
+                    i[[0, 1, 3]] = 0
+                    limbtype.append(i)
+                elif limb_scores_max_id == 3:
+                    i[[1, 2]] = 0
+                    limbtype.append(i)
+                elif limb_scores_max_id == 0:
+                    limb_scores_2 = pre_key_score[[9, 19]]
+                    limb_scores_2_id = np.argmax(limb_scores_2)
+                    if i[limb_scores_2_id] > 0.3:
+                        if limb_scores_2_id == 1:
+                            i[[1, 2]] = 0
+                            limbtype.append(i)
+                        else:
+                            i[[2, 3]] = 0
+                            limbtype.append(i)
+                    else:
+                        limbtype.append(i)
+                else:
+                    limbtype.append(i)
+            else:
+                limbtype.append(i)
+        limbtype = np.array(limbtype)
+        limbtype = (limbtype > 0.3).astype(int)
+        return limbtype
