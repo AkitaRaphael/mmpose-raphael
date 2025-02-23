@@ -553,14 +553,14 @@ class CocoMetric(BaseMetric):
 
         res_file = f'{outfile_prefix}.keypoints.json'
         dump(cat_results, res_file, sort_keys=True, indent=4)
-        # print(cat_results)
-
-        save_pred_file = '/home/rapheal/mmpose/vis_results/predtemp/coco_format_predictions.json'
+        # # print(cat_results)
+        #
+        # save_pred_file = '/home/rapheal/mmpose/vis_results/predtemp/coco_format_predictions.json'
+        # # with open(save_pred_file, 'w') as f:
+        # #     dump(cat_results, f, sort_keys=True, indent=4)
         # with open(save_pred_file, 'w') as f:
-        #     dump(cat_results, f, sort_keys=True, indent=4)
-        with open(save_pred_file, 'w') as f:
-            f.truncate(0)  # 清空文件内容
-        dump(cat_results, save_pred_file, sort_keys=True, indent=4)
+        #     f.truncate(0)  # 清空文件内容
+        # dump(cat_results, save_pred_file, sort_keys=True, indent=4)
 
 
     def _do_python_keypoint_eval(self, outfile_prefix: str) -> list:
