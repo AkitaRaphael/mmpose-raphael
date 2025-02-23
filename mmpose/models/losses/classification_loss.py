@@ -331,3 +331,56 @@ class VariFocalLoss(nn.Module):
             loss = loss.mean()
 
         return loss * self.loss_weight
+
+@MODELS.register_module()
+class paraLoss(nn.Module):
+    """Limb Visibility Loss.
+
+    Args:
+        reduction (str): Options are "none", "mean" and "sum".
+        loss_weight (float): Weight of the loss. Default: 1.0.
+    """
+
+    def __init__(self, reduction='mean', loss_weight=1):
+        super().__init__()
+        assert reduction in ('mean', 'sum', 'none'), f"Invalid reduction mode: {reduction}"
+        self.reduction = reduction
+        self.loss_weight = loss_weight
+
+
+
+    def forward(self, kpt_vis_preds, vis_targets):
+        """Forward function.
+
+        Args:
+            kpt_vis_preds (torch.Tensor[N, K]): Keypoint visibility predictions.
+            vis_targets (torch.Tensor[N, K]): Target keypoint visibility labels.
+        """
+        limb_pairs = torch.tensor([
+            [7, 17], [9, 19], [8, 18], [10, 20], [13, 21], [15, 23], [14, 22], [16, 24]
+        ], device=kpt_vis_preds.device)
+
+        visibilities = vis_targets[:, limb_pairs]  # (N, num_pairs, 2)
+        pred_diffs = kpt_vis_preds[:, limb_pairs[:, 0]] - kpt_vis_preds[:, limb_pairs[:, 1]]
+
+        valid_mask = (visibilities.sum(dim=-1) > 0)  # 至少一个关键点可见
+        valid_pred_diffs = pred_diffs[valid_mask]
+        valid_vis = visibilities[valid_mask]
+
+        # 目标差异值： p1可见设为-1，p2可见设为1，两个都可见设为0
+        target_diff = (valid_vis[:, 1] - valid_vis[:, 0])
+
+        # 用MSE或L1 loss约束预测差值接近目标差值
+        loss = F.mse_loss(valid_pred_diffs, target_diff.float(), reduction=self.reduction)
+
+
+        if self.reduction == 'sum':
+            loss = loss.sum()
+        elif self.reduction == 'mean':
+            loss = loss.mean()
+
+        else:
+            loss = torch.tensor(0.0, device=kpt_vis_preds.device)  # Avoid NaN issues
+
+        return loss * self.loss_weight
+
