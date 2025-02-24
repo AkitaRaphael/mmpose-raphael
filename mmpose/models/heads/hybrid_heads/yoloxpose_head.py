@@ -237,7 +237,7 @@ class YOLOXPoseHead(BaseModule):
         loss_bbox: Optional[ConfigType] = None,
         loss_oks: Optional[ConfigType] = None,
         loss_vis: Optional[ConfigType] = None,
-        loss_para: Optional[ConfigType] = None,
+        # loss_para: Optional[ConfigType] = None,
 
         loss_bbox_aux: Optional[ConfigType] = None,
         loss_kpt_aux: Optional[ConfigType] = None,
@@ -266,7 +266,7 @@ class YOLOXPoseHead(BaseModule):
         self.loss_bbox = MODELS.build(loss_bbox)
         self.loss_oks = MODELS.build(loss_oks)
         self.loss_vis = MODELS.build(loss_vis)
-        self.loss_para = MODELS.build(loss_para)
+        # self.loss_para = MODELS.build(loss_para)
         if loss_bbox_aux is not None:
             self.loss_bbox_aux = MODELS.build(loss_bbox_aux)
         if loss_kpt_aux is not None:
@@ -363,8 +363,8 @@ class YOLOXPoseHead(BaseModule):
             losses['loss_vis'] = self.loss_vis(kpt_vis_preds, vis_targets,
                                                vis_weights)
 
-            # 3.4.1 para limb visibility loss
-            losses['loss_para'] =self.loss_para(kpt_vis_preds, vis_targets)
+            # # 3.4.1 para limb visibility loss
+            # losses['loss_para'] =self.loss_para(kpt_vis_preds, vis_targets)
 
             # 3.5 classification loss
             cls_preds = flatten_cls_scores.view(-1,
