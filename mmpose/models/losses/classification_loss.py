@@ -341,46 +341,94 @@ class paraLoss(nn.Module):
         loss_weight (float): Weight of the loss. Default: 1.0.
     """
 
-    def __init__(self, reduction='mean', loss_weight=1):
+    def __init__(self, reduction='mean', loss_weight=0.5):
         super().__init__()
         assert reduction in ('mean', 'sum', 'none'), f"Invalid reduction mode: {reduction}"
         self.reduction = reduction
         self.loss_weight = loss_weight
-
-
+        self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, kpt_vis_preds, vis_targets):
-        """Forward function.
-
-        Args:
-            kpt_vis_preds (torch.Tensor[N, K]): Keypoint visibility predictions.
-            vis_targets (torch.Tensor[N, K]): Target keypoint visibility labels.
-        """
         limb_pairs = torch.tensor([
             [7, 17], [9, 19], [8, 18], [10, 20], [13, 21], [15, 23], [14, 22], [16, 24]
         ], device=kpt_vis_preds.device)
 
-        visibilities = vis_targets[:, limb_pairs]  # (N, num_pairs, 2)
-        pred_diffs = kpt_vis_preds[:, limb_pairs[:, 0]] - kpt_vis_preds[:, limb_pairs[:, 1]]
+        pred_pairwise_confidence = torch.cat((kpt_vis_preds[:, limb_pairs[:, 0, None]], kpt_vis_preds[:, limb_pairs[:, 1, None]]), dim=-1).flatten(start_dim=1)
+        visibilities = vis_targets[:, limb_pairs].flatten(start_dim=1)
 
-        valid_mask = (visibilities.sum(dim=-1) > 0)  # 至少一个关键点可见
-        valid_pred_diffs = pred_diffs[valid_mask]
-        valid_vis = visibilities[valid_mask]
+        loss = self.criterion(pred_pairwise_confidence, visibilities)
 
-        # 目标差异值： p1可见设为-1，p2可见设为1，两个都可见设为0
-        target_diff = (valid_vis[:, 1] - valid_vis[:, 0])
+        # pred_pairwise_confidence = torch.cat((kpt_vis_preds[:, limb_pairs[:, 0, None]], kpt_vis_preds[:, limb_pairs[:, 1, None]]), dim=-1)
+        # visibilities = vis_targets[:, limb_pairs]  # (N, num_pairs, 2)
+        #
+        # indices = ~((visibilities == 0).all(dim=-1))
+        #
+        # pred_pairwise_confidence = [pred_pairwise_confidence[i][indices[i]] for i in range(pred_pairwise_confidence.size(0))]
+        # pred_pairwise_confidence = torch.cat(pred_pairwise_confidence, dim=0)  # shape: [88, n, 2]
+        #
+        # visibilities = [visibilities[i][indices[i]] for i in range(visibilities.size(0))]
+        # visibilities = torch.cat(visibilities, dim=0)
+        #
+        # loss = self.criterion(pred_pairwise_confidence, visibilities)
 
-        # 用MSE或L1 loss约束预测差值接近目标差值
-        loss = F.mse_loss(valid_pred_diffs, target_diff.float(), reduction=self.reduction)
 
+        # pred_diffs = kpt_vis_preds[:, limb_pairs[:, 0]] - kpt_vis_preds[:, limb_pairs[:, 1]]
+        #
+        # valid_mask = (visibilities.sum(dim=-1) == 1)  # 只有一个关键点可见
+        # valid_pred_diffs = pred_diffs[valid_mask].sigmoid()
+        # valid_vis = visibilities[valid_mask]
+        # target_diff = valid_vis[:, 0] - valid_vis[:, 1]
+        # # loss = F.mse_loss(valid_pred_diffs, target_diff)
+        # loss = torch.log(torch.cosh(valid_pred_diffs - target_diff))
 
-        if self.reduction == 'sum':
-            loss = loss.sum()
-        elif self.reduction == 'mean':
-            loss = loss.mean()
+        # # gt可见的点 - 不可见的点
+        # target_diff = torch.where(valid_vis[:, 0] == 1, valid_pred_diffs, -valid_pred_diffs)
+        #
+        # # Loss设计：差值越大Loss越小
+        # loss = 1 / (1 + torch.exp(target_diff))
 
-        else:
-            loss = torch.tensor(0.0, device=kpt_vis_preds.device)  # Avoid NaN issues
+        # if self.reduction == 'sum':
+        #     loss = loss.sum()
+        # elif self.reduction == 'mean':
+        #     loss = loss.mean()
+        # else:
+        #     loss = torch.tensor(0.0, device=kpt_vis_preds.device)
 
         return loss * self.loss_weight
+
+
+    # def forward(self, kpt_vis_preds, vis_targets):
+    #     """Forward function.
+    #
+    #     Args:
+    #         kpt_vis_preds (torch.Tensor[N, K]): Keypoint visibility predictions.
+    #         vis_targets (torch.Tensor[N, K]): Target keypoint visibility labels.
+    #     """
+    #     limb_pairs = torch.tensor([
+    #         [7, 17], [9, 19], [8, 18], [10, 20], [13, 21], [15, 23], [14, 22], [16, 24]
+    #     ], device=kpt_vis_preds.device)
+    #
+    #     visibilities = vis_targets[:, limb_pairs]  # (N, num_pairs, 2)
+    #     pred_diffs = kpt_vis_preds[:, limb_pairs[:, 0]] - kpt_vis_preds[:, limb_pairs[:, 1]]
+    #
+    #     valid_mask = (visibilities.sum(dim=-1) > 0)  # 至少一个关键点可见
+    #     valid_pred_diffs = pred_diffs[valid_mask]
+    #     valid_vis = visibilities[valid_mask]
+    #
+    #     # 目标差异值： p1可见设为-1，p2可见设为1，两个都可见设为0
+    #     target_diff = (valid_vis[:, 1] - valid_vis[:, 0])
+    #
+    #     # 用MSE或L1 loss约束预测差值接近目标差值
+    #     loss = F.mse_loss(valid_pred_diffs, target_diff.float(), reduction=self.reduction)
+    #
+    #
+    #     if self.reduction == 'sum':
+    #         loss = loss.sum()
+    #     elif self.reduction == 'mean':
+    #         loss = loss.mean()
+    #
+    #     else:
+    #         loss = torch.tensor(0.0, device=kpt_vis_preds.device)  # Avoid NaN issues
+    #
+    #     return loss * self.loss_weight
 
