@@ -1,6 +1,7 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import warnings
-from typing import Optional, Sequence, Tuple, Union
+from typing import Optional, Sequence, Tuple, Union, Any
+import numpy as np
 
 import torch
 from mmengine.dist import get_dist_info
@@ -73,6 +74,7 @@ class RTMCCHead(BaseHead):
             use_rel_bias=False,
             pos_enc=False),
         loss: ConfigType = dict(type='KLDiscretLoss', use_target_weight=True),
+        loss_para: OptConfigType = None,
         decoder: OptConfigType = None,
         init_cfg: OptConfigType = None,
     ):
@@ -89,6 +91,7 @@ class RTMCCHead(BaseHead):
         self.simcc_split_ratio = simcc_split_ratio
 
         self.loss_module = MODELS.build(loss)
+        self.loss_para = MODELS.build(loss_para)
         if decoder is not None:
             self.decoder = KEYPOINT_CODECS.build(decoder)
         else:
@@ -131,7 +134,7 @@ class RTMCCHead(BaseHead):
         self.cls_x = nn.Linear(gau_cfg['hidden_dims'], W, bias=False)
         self.cls_y = nn.Linear(gau_cfg['hidden_dims'], H, bias=False)
 
-    def forward(self, feats: Tuple[Tensor]) -> Tuple[Tensor, Tensor]:
+    def forward(self, feats: Tuple[Tensor]) -> Tuple[Any, Any, Union[float, Any], Union[float, Any]]:
         """Forward the network.
 
         The input is the featuremap extracted by backbone and the
@@ -158,7 +161,24 @@ class RTMCCHead(BaseHead):
         pred_x = self.cls_x(feats)
         pred_y = self.cls_y(feats)
 
-        return pred_x, pred_y
+        N, K, Wx = pred_x.shape
+        simcc_x = pred_x.view(N * K, -1)
+        simcc_y = pred_y.view(N * K, -1)
+
+        x_locs = torch.argmax(simcc_x, dim=1)
+        y_locs = torch.argmax(simcc_y, dim=1)
+        locs = torch.stack((x_locs, y_locs), dim=-1)
+        max_val_x = torch.max(simcc_x, dim=1)[0]
+        max_val_y = torch.max(simcc_y, dim=1)[0]
+
+        mask = max_val_x > max_val_y
+        max_val_x[mask] = max_val_y[mask]
+        vals = max_val_x
+        locs[vals <= 0.] = -1
+
+        vals = vals.view(N, K)
+
+        return pred_x, pred_y, vals
 
     def predict(
         self,
@@ -196,9 +216,9 @@ class RTMCCHead(BaseHead):
             flip_indices = batch_data_samples[0].metainfo['flip_indices']
             _feats, _feats_flip = feats
 
-            _batch_pred_x, _batch_pred_y = self.forward(_feats)
+            _batch_pred_x, _batch_pred_y, _batch_pred_v= self.forward(_feats)
 
-            _batch_pred_x_flip, _batch_pred_y_flip = self.forward(_feats_flip)
+            _batch_pred_x_flip, _batch_pred_y_flip, _batch_pred_v_flip = self.forward(_feats_flip)
             _batch_pred_x_flip, _batch_pred_y_flip = flip_vectors(
                 _batch_pred_x_flip,
                 _batch_pred_y_flip,
@@ -207,7 +227,7 @@ class RTMCCHead(BaseHead):
             batch_pred_x = (_batch_pred_x + _batch_pred_x_flip) * 0.5
             batch_pred_y = (_batch_pred_y + _batch_pred_y_flip) * 0.5
         else:
-            batch_pred_x, batch_pred_y = self.forward(feats)
+            batch_pred_x, batch_pred_y, batch_pred_v = self.forward(feats)
 
         preds = self.decode((batch_pred_x, batch_pred_y))
 
@@ -253,7 +273,7 @@ class RTMCCHead(BaseHead):
     ) -> dict:
         """Calculate losses from a batch of inputs and data samples."""
 
-        pred_x, pred_y = self.forward(feats)
+        pred_x, pred_y, pre_v = self.forward(feats)
 
         gt_x = torch.cat([
             d.gt_instance_labels.keypoint_x_labels for d in batch_data_samples
@@ -263,6 +283,13 @@ class RTMCCHead(BaseHead):
             d.gt_instance_labels.keypoint_y_labels for d in batch_data_samples
         ],
                          dim=0)
+        gt_v = torch.cat([
+            torch.tensor(d.gt_instances.keypoints_visible, device=gt_x.device)
+            if isinstance(d.gt_instances.keypoints_visible, np.ndarray)
+            else d.gt_instances.keypoints_visible.to(gt_x.device)
+            for d in batch_data_samples
+        ], dim=0)
+
         keypoint_weights = torch.cat(
             [
                 d.gt_instance_labels.keypoint_weights
@@ -277,6 +304,8 @@ class RTMCCHead(BaseHead):
         # calculate losses
         losses = dict()
         loss = self.loss_module(pred_simcc, gt_simcc, keypoint_weights)
+        # 3.4.1 para limb visibility loss
+        losses['loss_para'] =self.loss_para(pre_v, gt_v)
 
         losses.update(loss_kpt=loss)
 

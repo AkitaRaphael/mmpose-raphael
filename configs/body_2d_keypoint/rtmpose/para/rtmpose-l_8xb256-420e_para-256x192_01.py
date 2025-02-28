@@ -59,8 +59,8 @@ model = dict(
         type='CSPNeXt',
         arch='P5',
         expand_ratio=0.5,
-        deepen_factor=0.67,
-        widen_factor=0.75,
+        deepen_factor=1.,
+        widen_factor=1.,
         out_indices=(4, ),
         channel_attention=True,
         norm_cfg=dict(type='SyncBN'),
@@ -69,11 +69,11 @@ model = dict(
             type='Pretrained',
             prefix='backbone.',
             checkpoint='https://download.openmmlab.com/mmpose/v1/projects/'
-            'rtmposev1/cspnext-m_udp-aic-coco_210e-256x192-f2f7d6f6_20230130.pth'  # noqa
+            'rtmposev1/cspnext-l_udp-aic-coco_210e-256x192-273b7631_20230130.pth'  # noqa
         )),
     head=dict(
         type='RTMCCHead',
-        in_channels=768,
+        in_channels=1024,
         out_channels=25,
         input_size=codec['input_size'],
         in_featuremap_size=tuple([s // 32 for s in codec['input_size']]),
@@ -93,6 +93,10 @@ model = dict(
             use_target_weight=True,
             beta=10.,
             label_softmax=True),
+        loss_para=dict(
+            type='paraLoss',
+            reduction='mean',
+            loss_weight=0.1),
         decoder=codec),
     test_cfg=dict(flip_test=True))
 
@@ -185,8 +189,8 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_train.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-train/'),
+        ann_file='annotations/person_keypoints_para_train.json',
+        data_prefix=dict(img='ParaAthelet-train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
@@ -199,10 +203,10 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json',
+        ann_file='annotations/person_keypoints_para_val.json',
         # bbox_file=f'{data_root}person_detection_results/'
         # 'COCO_val2017_detections_AP_H_56_person.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/'),
+        data_prefix=dict(img='ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -228,5 +232,5 @@ custom_hooks = [
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json')
+    ann_file=data_root + 'annotations/person_keypoints_para_val.json')
 test_evaluator = val_evaluator
