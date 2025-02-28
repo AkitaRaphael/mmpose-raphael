@@ -50,14 +50,14 @@ train_pipeline_stage1 = [
     dict(type='FilterAnnotations', by_kpt=True, by_box=True, keep_empty=False),
     dict(type='GenerateTarget', encoder=_base_.codec),
     dict(
-        type='PackPoseInputs',
-        extra_mapping_labels={
-            'bbox': 'bboxes',
-            'bbox_labels': 'labels',
-            'keypoints': 'keypoints',
-            'keypoints_visible': 'keypoints_visible',
-            'area': 'areas'
-        }),
+        type='PackPoseInputs')
+        # extra_mapping_labels={
+        #     'bbox': 'bboxes',
+        #     'bbox_labels': 'labels',
+        #     'keypoints': 'keypoints',
+        #     'keypoints_visible': 'keypoints_visible',
+        #     'area': 'areas'
+        # }),
 ]
 train_dataloader = dict(
     batch_size=16, dataset=dict(pipeline=train_pipeline_stage1))
