@@ -189,8 +189,8 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/person_keypoints_para_train.json',
-        data_prefix=dict(img='ParaAthelet-train/'),
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_train.json',
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
@@ -203,10 +203,10 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/person_keypoints_para_val.json',
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json',
         # bbox_file=f'{data_root}person_detection_results/'
         # 'COCO_val2017_detections_AP_H_56_person.json',
-        data_prefix=dict(img='ParaAthelet-val/'),
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -232,5 +232,5 @@ custom_hooks = [
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'annotations/person_keypoints_para_val.json')
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/')
 test_evaluator = val_evaluator

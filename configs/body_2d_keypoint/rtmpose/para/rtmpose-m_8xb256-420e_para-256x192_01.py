@@ -96,7 +96,7 @@ model = dict(
         loss_para=dict(
             type='paraLoss',
             reduction='mean',
-            loss_weight=0.01),
+            loss_weight=0.1),
         decoder=codec),
     test_cfg=dict(flip_test=True))
 
