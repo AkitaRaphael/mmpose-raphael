@@ -64,6 +64,7 @@ class HeatmapHead(BaseHead):
                  final_layer: dict = dict(kernel_size=1),
                  loss: ConfigType = dict(
                      type='KeypointMSELoss', use_target_weight=True),
+                 loss_para: Optional[ConfigType] = None,
                  decoder: OptConfigType = None,
                  init_cfg: OptConfigType = None):
 
@@ -75,6 +76,7 @@ class HeatmapHead(BaseHead):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.loss_module = MODELS.build(loss)
+        self.loss_para = MODELS.build(loss_para)
         if decoder is not None:
             self.decoder = KEYPOINT_CODECS.build(decoder)
         else:
@@ -128,6 +130,14 @@ class HeatmapHead(BaseHead):
 
         # Register the hook to automatically convert old version state dicts
         self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
+
+    def unravel_index(self, indices, shape):
+        indices = indices.clone()
+        coords = []
+        for dim in reversed(shape):
+            coords.append(indices % dim)
+            indices = indices // dim
+        return tuple(reversed(coords))
 
     def _make_conv_layers(self, in_channels: int,
                           layer_out_channels: Sequence[int],
@@ -212,9 +222,19 @@ class HeatmapHead(BaseHead):
 
         x = self.deconv_layers(x)
         x = self.conv_layers(x)
-        x = self.final_layer(x)
+        x = self.final_layer(x) # -> B, K, H, W
 
-        return x
+        if x.ndim == 3:
+            K, H, W = x.shape
+            B = None
+            heatmaps_flatten = x.reshape(K, -1)
+        else:
+            B, K, H, W = x.shape
+            heatmaps_flatten = x.reshape(B, K, -1)
+
+        vals = torch.amax(heatmaps_flatten, dim=2)
+
+        return x,vals
 
     def predict(self,
                 feats: Features,
@@ -255,15 +275,15 @@ class HeatmapHead(BaseHead):
             assert isinstance(feats, list) and len(feats) == 2
             flip_indices = batch_data_samples[0].metainfo['flip_indices']
             _feats, _feats_flip = feats
-            _batch_heatmaps = self.forward(_feats)
+            _batch_heatmaps, _batch_pred_v = self.forward(_feats)
             _batch_heatmaps_flip = flip_heatmaps(
-                self.forward(_feats_flip),
+                self.forward(_feats_flip)[0],
                 flip_mode=test_cfg.get('flip_mode', 'heatmap'),
                 flip_indices=flip_indices,
                 shift_heatmap=test_cfg.get('shift_heatmap', False))
             batch_heatmaps = (_batch_heatmaps + _batch_heatmaps_flip) * 0.5
         else:
-            batch_heatmaps = self.forward(feats)
+            batch_heatmaps, batch_pred_v = self.forward(feats)
 
         preds = self.decode(batch_heatmaps)
 
@@ -291,12 +311,17 @@ class HeatmapHead(BaseHead):
         Returns:
             dict: A dictionary of losses.
         """
-        pred_fields = self.forward(feats)
+        pred_fields, pre_v = self.forward(feats)
         gt_heatmaps = torch.stack(
             [d.gt_fields.heatmaps for d in batch_data_samples])
         keypoint_weights = torch.cat([
             d.gt_instance_labels.keypoint_weights for d in batch_data_samples
         ])
+
+        gt_v = torch.cat([
+            torch.tensor(d.gt_instances.keypoints_visible)
+            for d in batch_data_samples
+        ], dim=0)
 
         # calculate losses
         losses = dict()
@@ -313,6 +338,8 @@ class HeatmapHead(BaseHead):
 
             acc_pose = torch.tensor(avg_acc, device=gt_heatmaps.device)
             losses.update(acc_pose=acc_pose)
+        # 3.4.1 para limb visibility loss
+        losses['loss_para'] = self.loss_para(pre_v, gt_v)
 
         return losses
 

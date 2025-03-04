@@ -1,7 +1,7 @@
 _base_ = ['../../../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=20, val_interval=10)
+train_cfg = dict(max_epochs=250, val_interval=10)
 
 # optimizer
 custom_imports = dict(
@@ -82,6 +82,10 @@ model = dict(
         deconv_out_channels=(256, 256),
         deconv_kernel_sizes=(4, 4),
         loss=dict(type='KeypointMSELoss', use_target_weight=True),
+        loss_para=dict(
+            type='paraLoss',
+            reduction='mean',
+            loss_weight=0.1),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
@@ -114,7 +118,7 @@ val_pipeline = [
 
 # data loaders
 train_dataloader = dict(
-    batch_size=32,
+    batch_size=64,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -123,9 +127,9 @@ train_dataloader = dict(
 
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_train.json',
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_train.json',
         # ann_file='annotations/person_keypoints_val_para_test1.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/ParaAthelet-train/'),
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
@@ -138,11 +142,11 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_val.json',
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json',
         # ann_file='annotations/person_keypoints_val_para_test1.json',
         # bbox_file='data/coco/person_detection_results/'
         # 'human_bbox_coco_format_test.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/ParaAthelet-val/'),
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -153,7 +157,7 @@ test_dataloader = val_dataloader
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixian/person_keypoints_para_val.json')
+    ann_file= '/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json')
     # ann_file=data_root + 'annotations/person_keypoints_val_para_test1.json')
 
 

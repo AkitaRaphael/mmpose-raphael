@@ -11,7 +11,7 @@ randomness = dict(seed=21)
 # optimizer
 optim_wrapper = dict(
     type='OptimWrapper',
-    optimizer=dict(type='AdamW', lr=base_lr, weight_decay=0.05),
+    optimizer=dict(type='AdamW', lr=base_lr, weight_decay=0.),
     paramwise_cfg=dict(
         norm_decay_mult=0, bias_decay_mult=0, bypass_duplicate=True))
 
@@ -59,8 +59,8 @@ model = dict(
         type='CSPNeXt',
         arch='P5',
         expand_ratio=0.5,
-        deepen_factor=1.,
-        widen_factor=1.,
+        deepen_factor=0.33,
+        widen_factor=0.5,
         out_indices=(4, ),
         channel_attention=True,
         norm_cfg=dict(type='SyncBN'),
@@ -69,11 +69,11 @@ model = dict(
             type='Pretrained',
             prefix='backbone.',
             checkpoint='https://download.openmmlab.com/mmpose/v1/projects/'
-            'rtmposev1/cspnext-l_udp-aic-coco_210e-256x192-273b7631_20230130.pth'  # noqa
+            'rtmposev1/cspnext-s_udp-aic-coco_210e-256x192-92f5a029_20230130.pth'  # noqa
         )),
     head=dict(
         type='RTMCCHead',
-        in_channels=1024,
+        in_channels=512,
         out_channels=25,
         input_size=codec['input_size'],
         in_featuremap_size=tuple([s // 32 for s in codec['input_size']]),
@@ -181,7 +181,7 @@ train_pipeline_stage2 = [
 
 # data loaders
 train_dataloader = dict(
-    batch_size=32,
+    batch_size=256,
     num_workers=10,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -189,12 +189,12 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_train.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-train/'),
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_train.json',
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
-    batch_size=32,
+    batch_size=128,
     num_workers=10,
     persistent_workers=True,
     drop_last=False,
@@ -203,10 +203,10 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/person_keypoints_para_val.json',
+        ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json',
         # bbox_file=f'{data_root}person_detection_results/'
         # 'COCO_val2017_detections_AP_H_56_person.json',
-        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/'),
+        data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
@@ -232,5 +232,5 @@ custom_hooks = [
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/uploadtolixiang/ParaAthelet-val/')
+    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json')
 test_evaluator = val_evaluator
