@@ -85,6 +85,10 @@ model = dict(
         deconv_out_channels=(256, 256),
         deconv_kernel_sizes=(4, 4),
         loss=dict(type='KeypointMSELoss', use_target_weight=True),
+        loss_para=dict(
+            type='paraLoss',
+            reduction='mean',
+            loss_weight=0.0001),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
