@@ -116,7 +116,7 @@ val_pipeline = [
 
 # data loaders
 train_dataloader = dict(
-    batch_size=64,
+    batch_size=16,
     num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -129,7 +129,7 @@ train_dataloader = dict(
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
-    batch_size=32,
+    batch_size=8,
     num_workers=4,
     persistent_workers=True,
     drop_last=False,
@@ -139,8 +139,8 @@ val_dataloader = dict(
         data_root=data_root,
         data_mode=data_mode,
         ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json',
-        bbox_file='data/coco/person_detection_results/'
-        'COCO_val2017_detections_AP_H_56_person.json',
+        # bbox_file='data/coco/person_detection_results/'
+        # 'COCO_val2017_detections_AP_H_56_person.json',
         data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
