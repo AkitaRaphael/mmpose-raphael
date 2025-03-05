@@ -354,6 +354,7 @@ class paraLoss(nn.Module):
         ], device=kpt_vis_preds.device)
 
         pred_pairwise_confidence = torch.cat((kpt_vis_preds[:, limb_pairs[:, 0, None]], kpt_vis_preds[:, limb_pairs[:, 1, None]]), dim=-1).flatten(start_dim=1)
+        vis_targets = vis_targets.to(limb_pairs.device)
         visibilities = vis_targets[:, limb_pairs].flatten(start_dim=1)
 
         loss = self.criterion(pred_pairwise_confidence, visibilities)

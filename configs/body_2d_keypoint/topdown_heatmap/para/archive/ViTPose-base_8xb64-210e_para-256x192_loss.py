@@ -1,7 +1,7 @@
 _base_ = ['../../../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=210, val_interval=10)
+train_cfg = dict(max_epochs=250, val_interval=10)
 
 # optimizer
 custom_imports = dict(
@@ -11,9 +11,10 @@ custom_imports = dict(
 optim_wrapper = dict(
     optimizer=dict(
         type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
+        # type='AdamW', lr=5e-5, betas=(0.9, 0.999), weight_decay=0.1),
     paramwise_cfg=dict(
-        num_layers=32,
-        layer_decay_rate=0.85,
+        num_layers=12,
+        layer_decay_rate=0.75,
         custom_keys={
             'bias': dict(decay_multi=0.0),
             'pos_embed': dict(decay_mult=0.0),
@@ -29,6 +30,7 @@ optim_wrapper = dict(
 param_scheduler = [
     dict(
         type='LinearLR', begin=0, end=500, start_factor=0.001,
+        # type='LinearLR', begin=0, end=500, start_factor=0.001,
         by_epoch=False),  # warm-up
     dict(
         type='MultiStepLR',
@@ -60,22 +62,22 @@ model = dict(
         bgr_to_rgb=True),
     backbone=dict(
         type='mmpretrain.VisionTransformer',
-        arch='huge',
+        arch='base',
         img_size=(256, 192),
         patch_size=16,
         qkv_bias=True,
-        drop_path_rate=0.55,
+        drop_path_rate=0.3,
         with_cls_token=False,
         out_type='featmap',
         patch_cfg=dict(padding=2),
         init_cfg=dict(
             type='Pretrained',
             checkpoint='https://download.openmmlab.com/mmpose/'
-            'v1/pretrained_models/mae_pretrain_vit_huge_20230913.pth'),
+            'v1/pretrained_models/mae_pretrain_vit_base_20230913.pth'),
     ),
     head=dict(
         type='HeatmapHead',
-        in_channels=1280,
+        in_channels=768,
         out_channels=25,
         deconv_out_channels=(256, 256),
         deconv_kernel_sizes=(4, 4),
@@ -83,7 +85,7 @@ model = dict(
         loss_para=dict(
             type='paraLoss',
             reduction='mean',
-            loss_weight=0.0001),
+            loss_weight=0.1),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
@@ -122,9 +124,11 @@ train_dataloader = dict(
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
+
         data_root=data_root,
         data_mode=data_mode,
         ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_train.json',
+        # ann_file='annotations/person_keypoints_val_para_test1.json',
         data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-train/'),
         pipeline=train_pipeline,
     ))
@@ -139,16 +143,22 @@ val_dataloader = dict(
         data_root=data_root,
         data_mode=data_mode,
         ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json',
-        bbox_file='data/coco/person_detection_results/'
-        'COCO_val2017_detections_AP_H_56_person.json',
+        # ann_file='annotations/person_keypoints_val_para_test1.json',
+        # bbox_file='data/coco/person_detection_results/'
+        # 'human_bbox_coco_format_test.json',
         data_prefix=dict(img='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/ParaAthelet-val/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
 test_dataloader = val_dataloader
 
+
+
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file='/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json')
+    ann_file= '/lpai/volumes/lmm-data-proc/xiaobiaodu/jess/Data/ParaPose/person_keypoints_para_val.json')
+    # ann_file=data_root + 'annotations/person_keypoints_val_para_test1.json')
+
+
 test_evaluator = val_evaluator
