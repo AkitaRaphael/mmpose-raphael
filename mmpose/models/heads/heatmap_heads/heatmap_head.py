@@ -76,7 +76,7 @@ class HeatmapHead(BaseHead):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.loss_module = MODELS.build(loss)
-        self.loss_para = MODELS.build(loss_para)
+        # self.loss_para = MODELS.build(loss_para)
         if decoder is not None:
             self.decoder = KEYPOINT_CODECS.build(decoder)
         else:
@@ -338,8 +338,8 @@ class HeatmapHead(BaseHead):
 
             acc_pose = torch.tensor(avg_acc, device=gt_heatmaps.device)
             losses.update(acc_pose=acc_pose)
-        # 3.4.1 para limb visibility loss
-        losses['loss_para'] = self.loss_para(pre_v, gt_v)
+        # # 3.4.1 para limb visibility loss
+        # losses['loss_para'] = self.loss_para(pre_v, gt_v)
 
         return losses
 

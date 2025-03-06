@@ -93,10 +93,10 @@ model = dict(
             use_target_weight=True,
             beta=10.,
             label_softmax=True),
-        loss_para=dict(
-            type='paraLoss',
-            reduction='mean',
-            loss_weight=0.1),
+        # loss_para=dict(
+        #     type='paraLoss',
+        #     reduction='mean',
+        #     loss_weight=0.1),
         decoder=codec),
     test_cfg=dict(flip_test=True))
 

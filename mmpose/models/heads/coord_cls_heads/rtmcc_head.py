@@ -91,7 +91,7 @@ class RTMCCHead(BaseHead):
         self.simcc_split_ratio = simcc_split_ratio
 
         self.loss_module = MODELS.build(loss)
-        self.loss_para = MODELS.build(loss_para)
+        # self.loss_para = MODELS.build(loss_para)
         if decoder is not None:
             self.decoder = KEYPOINT_CODECS.build(decoder)
         else:
@@ -304,8 +304,8 @@ class RTMCCHead(BaseHead):
         # calculate losses
         losses = dict()
         loss = self.loss_module(pred_simcc, gt_simcc, keypoint_weights)
-        # 3.4.1 para limb visibility loss
-        losses['loss_para'] =self.loss_para(pre_v, gt_v)
+        # # 3.4.1 para limb visibility loss
+        # losses['loss_para'] =self.loss_para(pre_v, gt_v)
 
         losses.update(loss_kpt=loss)
 
